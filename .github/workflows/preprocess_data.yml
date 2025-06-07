@@ -1,0 +1,52 @@
+# .github/workflows/preprocess_data.yml
+
+name: Data Preprocessing Workflow
+
+on:
+  push:
+    branches:
+      - main # Trigger workflow setiap kali ada push ke branch 'main'
+    paths:
+      - 'namadataset_raw/**' # Hanya trigger jika ada perubahan di folder data mentah
+      - 'preprocessing/automate_Preprocessing_TelcoChurn.py' # Atau jika script preprocessing berubah
+
+jobs:
+  preprocess_data:
+    runs-on: ubuntu-latest # Jalankan job di runner Ubuntu terbaru
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4 # Mengambil kode dari repository
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9' # Gunakan versi Python yang kompatibel (misal 3.9 atau 3.10)
+        # Anda bisa sesuaikan ke 3.12.7 seperti saran, tapi 3.9/3.10 lebih umum di GH Actions
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas numpy scikit-learn # Install library yang dibutuhkan oleh script preprocessing
+
+    - name: Ensure raw data directory exists
+      run: |
+        mkdir -p namadataset_raw # Pastikan folder raw data ada sebelum script jalan
+
+    - name: Run data preprocessing script
+      run: |
+        # Asumsi file zip data mentah sudah ada di 'namadataset_raw/'
+        python preprocessing/automate_Preprocessing_TelcoChurn.py
+
+    - name: Upload preprocessed data as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: telco-churn-preprocessed-data
+        path: namadataset_preprocessing/ # Upload seluruh folder hasil preprocessing
+        retention-days: 5 # Berapa lama artefak disimpan di GitHub Actions
+
+    - name: Verify preprocessed data (Optional)
+      run: |
+        echo "Verifikasi data yang diproses:"
+        ls -l namadataset_preprocessing/
+        head namadataset_preprocessing/telco_customer_churn_features_preprocessed.csv
